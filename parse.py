@@ -5,11 +5,11 @@ from _datetime import datetime
 
 time_pattern = re.compile('^\d{4}\-\d{2}\-\d{2}\s\d{2}\:\d{2}\:\d{2}\,\d+')
 execute_pattern = re.compile('^Executing extension (\w+)')
-perf_pattern = re.compile('^session:\s+(\d+)\s+transaction:\s+(\d+)\s+clientport(\d+)\s+account:\s+(\w+)\s+token:\s+(\d+)\s+elapsed time:\s+(\d+)')
+perf_pattern = re.compile('^session:\s+(?P<session>\d+)\s+transaction:(?:\s+(?P<transaction>\d+))?\s?(?:\s+clientport(?P<client_port>\d+))?\s+account:\s+(?:(?P<account>\w+)\s+)?token:(?:\s+(?P<token>\d+))?\s+elapsed time:(?:\s+(?P<elapsed_time>\d+))')
 incoming_pattern = re.compile('incoming: ')
 outgoing_pattern = re.compile('incoming: ')
 logon_pattern = re.compile('^[*]+\[6\]:\sDMI:127\.0\.0\.1:6700,live,(\w+)')
-error_pattern = re.compile('SERRS(.?)SERRS.END')
+error_pattern = re.compile('SERRS(.*)SERRS.END')
 issues = []
 
 
@@ -46,15 +46,13 @@ def parse(line, current_time, state, current_extension, current_perf_info):
         # found performance info
         current_perf_info = {'timestamp': current_time,
                              'extension': current_extension,
-                             'session': int(perf_match.group(1)),
-                             'transaction': int(perf_match.group(2)),
-                             'client_port': int(perf_match.group(3)),
-                             'account': perf_match.group(4),
-                             'token': perf_match.group(5),
-                             'elapsed_time': int(perf_match.group(6)),
                              'user': 'udproxy',
                              'error': None
                              }
+        current_perf_info.update(perf_match.groupdict())
+        for key in ['elapsed_time', 'session', 'transaction', 'client_port']:
+            if key in current_perf_info.keys() and current_perf_info[key]:
+                current_perf_info[key] = int(current_perf_info[key])
         state = 2
     incoming_match = incoming_pattern.search(rest)
     if state == 2 and current_perf_info and incoming_match:
@@ -81,8 +79,8 @@ def main(args):
     current_perf_info = {}
     current_time = None
     with open(filename, 'r', errors='replace') as f:
-        for i in f.readlines():
-            current_time, state, current_extension, current_perf_info = parse(i, current_time, state, current_extension, current_perf_info)
+        for line in f.readlines():
+            current_time, state, current_extension, current_perf_info = parse(line, current_time, state, current_extension, current_perf_info)
     store_issues(current_perf_info)
     # print(current_perf_info)
 
