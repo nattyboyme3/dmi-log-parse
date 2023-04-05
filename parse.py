@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 import sys
 import re
 from _datetime import datetime
@@ -14,9 +15,9 @@ issues = []
 def store_issues(current_perf_info):
     if 'elapsed_time' in current_perf_info.keys() and current_perf_info['elapsed_time'] > 10000:
         issues.append(current_perf_info)
-    elif 'incoming_length' in current_perf_info.keys() and current_perf_info['incoming_length'] > 10000:
+    elif 'incoming_length' in current_perf_info.keys() and current_perf_info['incoming_length'] > 100000:
         issues.append(current_perf_info)
-    elif 'outgoing_length' in current_perf_info.keys() and current_perf_info['outgoing_length'] > 10000:
+    elif 'outgoing_length' in current_perf_info.keys() and current_perf_info['outgoing_length'] > 100000:
         issues.append(current_perf_info)
 
 
