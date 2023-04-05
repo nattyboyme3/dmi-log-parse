@@ -9,6 +9,7 @@ perf_pattern = re.compile('^session:\s+(\d+)\s+transaction:\s+(\d+)\s+clientport
 incoming_pattern = re.compile('incoming: ')
 outgoing_pattern = re.compile('incoming: ')
 logon_pattern = re.compile('^[*]+\[6\]:\sDMI:127\.0\.0\.1:6700,live,(\w+)')
+error_pattern = re.compile('SERRS(.?)SERRS.END')
 issues = []
 
 
@@ -18,6 +19,8 @@ def store_issues(current_perf_info):
     elif 'incoming_length' in current_perf_info.keys() and current_perf_info['incoming_length'] > 100000:
         issues.append(current_perf_info)
     elif 'outgoing_length' in current_perf_info.keys() and current_perf_info['outgoing_length'] > 100000:
+        issues.append(current_perf_info)
+    elif 'error' in current_perf_info.keys() and current_perf_info['error']:
         issues.append(current_perf_info)
 
 
@@ -49,7 +52,8 @@ def parse(line, current_time, state, current_extension, current_perf_info):
                              'account': perf_match.group(4),
                              'token': perf_match.group(5),
                              'elapsed_time': int(perf_match.group(6)),
-                             'user': 'udproxy'
+                             'user': 'udproxy',
+                             'error': None
                              }
         state = 2
     incoming_match = incoming_pattern.search(rest)
@@ -61,6 +65,9 @@ def parse(line, current_time, state, current_extension, current_perf_info):
     logon_match = logon_pattern.search(rest)
     if state == 2 and current_perf_info and logon_match:
         current_perf_info['user'] = logon_match.group(1)
+    error_match = error_pattern.search(rest)
+    if state == 2 and current_perf_info and error_match:
+        current_perf_info['error'] = error_match.group(1)
     return current_time, state, current_extension, current_perf_info
 
 
