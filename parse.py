@@ -51,9 +51,17 @@ class DMIParser:
     def stats(self):
         return self.completed_transactions
 
+    def finalize(self):
+        for trans in self.current_transactions:
+            if not trans.complete:
+                trans.elapsed_time = -3
+            if trans.in_error() or trans.elapsed_time == -3:
+                self.error_transactions.append(trans)
+            else:
+                self.completed_transactions.append(trans)
+
     def cleanup(self):
         tmp_list = []
-        now = dt.now()
         for trans in self.current_transactions:
             if not trans.complete:
                 td = self.current_time - trans.timestamp
@@ -67,7 +75,6 @@ class DMIParser:
                 if trans.in_error():
                     self.error_transactions.append(trans)
                 else:
-                    # just drop it, don't keep it, because it's completed and not in error
                     self.completed_transactions.append(trans)
         self.current_transactions = tmp_list
 
@@ -149,6 +156,7 @@ def main(args):
             start_date = None
         for line in f.readlines():
             p.parse_dmi_line(line, start_date)
+    p.finalize()
     if stats:
         return p.stats()
     else:

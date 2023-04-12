@@ -22,6 +22,8 @@ class DMITransaction:
             et = 'unknown'
         if self.elapsed_time == -2:
             et = 'timeout'
+        if self.elapsed_time == -3:
+            et = 'pending'
         ic = self.incoming_length
         if self.incoming_length == -1:
             ic = 'unknown'
