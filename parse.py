@@ -48,6 +48,9 @@ class DMIParser:
     def errors(self):
         return self.error_transactions
 
+    def stats(self):
+        return self.completed_transactions
+
     def cleanup(self):
         tmp_list = []
         now = dt.now()
@@ -65,12 +68,10 @@ class DMIParser:
                     self.error_transactions.append(trans)
                 else:
                     # just drop it, don't keep it, because it's completed and not in error
-                    # self.completed_transactions.append(trans)
-                    pass
+                    self.completed_transactions.append(trans)
         self.current_transactions = tmp_list
 
     def parse_dmi_line(self, line, start_time=None):
-
         self.cleanup()
         split_line = line.split()
         time_match = time_pattern.search(" ".join(split_line[:2]))
@@ -136,6 +137,10 @@ def main(args):
         min_to_check = int(args[2])
     else:
         min_to_check = None
+    if len(args) > 3:
+        stats = True
+    else:
+        stats = False
     p = DMIParser()
     with open(filename, 'r', errors='replace') as f:
         if min_to_check:
@@ -144,7 +149,10 @@ def main(args):
             start_date = None
         for line in f.readlines():
             p.parse_dmi_line(line, start_date)
-    return p.errors()
+    if stats:
+        return p.stats()
+    else:
+        return p.errors()
 
 
 if __name__ == "__main__":
