@@ -80,7 +80,7 @@ class DMIParser:
             rest = " ".join(split_line[2:])
         else:
             rest = line
-        if self.current_time < start_time:
+        if start_time and self.current_time and self.current_time < start_time:
             return
         exec_match = execute_pattern.search(rest)
         if exec_match and self.current_time:
