@@ -1,0 +1,34 @@
+import datetime
+
+
+class DMITransaction:
+    def __init__(self, extension, timestamp):
+        self.extension: str = extension
+        self.timestamp: datetime.datetime = timestamp
+        self.user: str = None
+        self.elapsed_time: int = -1
+        self.error: str = ''
+        self.incoming_length: int = -1
+        self.outgoing_length: int = -1
+        self.complete: bool = False
+        self.calc_elapsed: int = -1
+
+    def in_error(self):
+        return self.elapsed_time > 10000 or self.error or self.incoming_length > 100000 or self.outgoing_length > 100000
+
+    def __repr__(self):
+        et = self.elapsed_time
+        if self.elapsed_time == -1:
+            et = 'unknown'
+        if self.elapsed_time == -2:
+            et = 'timeout'
+        ic = self.incoming_length
+        if self.incoming_length == -1:
+            ic = 'unknown'
+        og = self.outgoing_length
+        if self.outgoing_length == -1:
+            og = 'unknown'
+        ce = int(self.calc_elapsed * 1000)
+        if self.calc_elapsed == -1:
+            ce = 'unknown'
+        return f"{self.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')} {self.extension} {et} {ce} {ic} {og} user: {self.user} error: {self.error}"
