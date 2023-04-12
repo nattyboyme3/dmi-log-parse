@@ -52,13 +52,16 @@ class DMIParser:
         return self.completed_transactions
 
     def finalize(self):
+        pending_transactions = []
         for trans in self.current_transactions:
             if not trans.complete:
                 trans.elapsed_time = -3
-            if trans.in_error() or trans.elapsed_time == -3:
+                pending_transactions.append(trans)
+            elif trans.in_error():
                 self.error_transactions.append(trans)
             else:
                 self.completed_transactions.append(trans)
+        return pending_transactions
 
     def cleanup(self):
         tmp_list = []
@@ -156,7 +159,9 @@ def main(args):
             start_date = None
         for line in f.readlines():
             p.parse_dmi_line(line, start_date)
-    p.finalize()
+    pending = p.finalize()
+    if len(pending) >= 5:
+        p.error_transactions.extend(pending)
     if stats:
         return p.stats()
     else:
