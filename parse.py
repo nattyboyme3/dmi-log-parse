@@ -137,6 +137,16 @@ class DMIParser:
             # This is the end of any given transaction, so we need to store the perf info.
             self.flush_perf_info_cache()
 
+    def filter_errors(self):
+        self.error_transactions = self.filtered_errors()
+
+    def filtered_errors(self):
+        new_list = []
+        for error in self.error_transactions:
+            if not error.contains_any(ignore_list):
+                new_list.append(error)
+        return new_list
+
 
 def main(args):
     if len(args) > 1:
@@ -162,6 +172,7 @@ def main(args):
     pending = p.finalize()
     if len(pending) >= 5:
         p.error_transactions.extend(pending)
+    p.filter_errors()
     if stats:
         return p.stats()
     else:

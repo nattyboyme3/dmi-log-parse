@@ -16,6 +16,12 @@ class DMITransaction:
     def in_error(self):
         return self.elapsed_time > 10000 or self.error or self.incoming_length > 100000 or self.outgoing_length > 100000
 
+    def contains_any(self, pattern_list: list):
+        return any([self.contains(x) for x in pattern_list])
+
+    def contains(self, pattern):
+        return pattern in self.error
+
     def __repr__(self):
         et = self.elapsed_time
         if self.elapsed_time == -1:

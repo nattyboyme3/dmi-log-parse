@@ -8,3 +8,11 @@ outgoing_pattern = re.compile('outgoing: ')
 logon_pattern = re.compile('^[*]+\[6\]:\sDMI:127\.0\.0\.1:6700,live,(\w+)')
 error_pattern = re.compile('SERRS(.*)SERRS.END')
 incoming_transaction_pattern = re.compile('incoming: DMI.\d\.\d.(?P<extension>\w{2,6})')
+
+ignore_list = [
+    "You have exceeded the maximum number of simultaneous UI sessions",
+    "Your previous session is no longer valid.  Please log in again.",
+    "Shared list name",
+    "Please enter a search string",
+    "You entered an invalid username or password. Please try again."
+]
