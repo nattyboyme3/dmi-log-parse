@@ -20,7 +20,10 @@ class DMITransaction:
         return any([self.contains(x) for x in pattern_list])
 
     def contains(self, pattern):
-        return pattern in self.error
+        if self.error:
+            return pattern in self.error
+        else:
+            return False
 
     def __repr__(self):
         et = self.elapsed_time
