@@ -47,7 +47,7 @@ if __name__ == "__main__":
     a.add_argument('-e', '--email', type=str, action='append', help="people to email", default=None)
     args = a.parse_args()
     filepath = args.file
-    pending_max = args.restart
+    pending_max = args.count
     minutes = args.minutes
     stats = args.stats
     if args.debug:
