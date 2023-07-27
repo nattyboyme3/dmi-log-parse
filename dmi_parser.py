@@ -16,6 +16,7 @@ class DMIParser:
         self.current_time: dt = dt.now()
         self.completed_transactions: list[DMITransaction] = []
         self.log = logging.getLogger()
+        self.last_extension = ""
         if debug:
             self.log.setLevel(logging.DEBUG)
 
@@ -36,8 +37,9 @@ class DMIParser:
                 time_elapsed = self.current_time - trans.timestamp
                 trans.calc_elapsed = time_elapsed.total_seconds()
                 trans.complete = True
-                if len(self.current_perf_info_list) < 0:
-                    self.current_perf_info = self.current_perf_info_list[0]
+                self.log.debug(f"completed transaction with extension {trans.extension} and time of {trans.elapsed_time}")
+                if len(self.current_perf_info_list) > 0:
+                    self.current_perf_info = self.current_perf_info_list.pop(0)
                 else:
                     self.current_perf_info = {}
                 break
@@ -89,7 +91,7 @@ class DMIParser:
 
     def parse_dmi_line(self, line, start_time=None):
         self.cleanup()
-        split_line = line.split()
+        split_line = line.strip().split()
         time_match = time_pattern.search(" ".join(split_line[:2]))
         if time_match:
             self.current_time = dt.strptime(" ".join(split_line[:2]), "%Y-%m-%d %H:%M:%S,%f")
@@ -98,6 +100,7 @@ class DMIParser:
         else:
             rest = line
         if start_time and self.current_time and self.current_time < start_time:
+            self.log.debug(f'discarding old log {self.current_time} is before start time of {start_time}')
             return
         exec_match = execute_pattern.search(rest)
         if exec_match and self.current_time:
@@ -105,6 +108,7 @@ class DMIParser:
             new_transaction = DMITransaction(exec_match.group(1), self.current_time)
             self.log.debug(f'matched execution with extension {new_transaction.extension}')
             self.current_transactions.append(new_transaction)
+            self.last_extension = new_transaction.extension
         perf_match = perf_pattern.search(rest)
         if perf_match:
             # found performance info
@@ -120,7 +124,12 @@ class DMIParser:
             self.current_state = 2  # This means we have perf info in the cache, and are looking for i/o matches
             # if we already have perf info in the cache, we need to store this one.
             if self.current_perf_info:
-                self.current_perf_info_list.append(tmp_perf_info)
+                if len(self.current_perf_info.keys()) > 1:
+                    # if it's more than one key, we will just chuck this one in the cache
+                    self.current_perf_info_list.append(tmp_perf_info)
+                else:
+                    # if it's only one key, we'll merge them (logins)
+                    self.current_perf_info.update(tmp_perf_info)
             # Otherwise, cache this info
             else:
                 self.current_perf_info = tmp_perf_info
@@ -128,23 +137,25 @@ class DMIParser:
         incoming_match = incoming_pattern.search(rest)
         if incoming_match:
             self.current_perf_info['incoming_length'] = len(rest)
-            self.log.debug(f'matched incoming with info {rest}')
+            self.log.debug(f'matched incoming with info {rest[:10]}')
             inc_trans_match = incoming_transaction_pattern.search(rest)
             if inc_trans_match:
-                self.log.debug(f'matched incoming transaction with info {inc_trans_match.group("extension")}')
+                self.log.debug(f'matched incoming transaction with extension info: {inc_trans_match.group("extension")}')
                 self.current_perf_info['extension'] = inc_trans_match.group('extension')
+            else:
+                self.current_perf_info['extension'] = self.last_extension
         outgoing_match = outgoing_pattern.search(rest)
         if outgoing_match and 'extension' in self.current_perf_info.keys():
-            self.log.debug(f'matched outgoing with info {rest}')
+            self.log.debug(f'matched outgoing with info {rest[:10]}')
             self.current_perf_info['outgoing_length'] = len(rest)
             flush = True
         logon_match = logon_pattern.search(rest)
         if logon_match:
-            self.log.debug(f'matched outgoing with info {logon_match.group(1)}')
+            self.log.debug(f'matched login with info {logon_match.group(1)}')
             self.current_perf_info['user'] = logon_match.group(1)
         error_match = error_pattern.search(rest)
         if error_match:
-            self.log.debug(f'matched outgoing with info {error_match.group(1)}')
+            self.log.debug(f'matched error with info {error_match.group(1)}')
             self.current_perf_info['error'] = error_match.group(1)
             flush = True
         if flush:
