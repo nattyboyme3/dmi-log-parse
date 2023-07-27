@@ -4,8 +4,9 @@ import sys
 import os
 from datetime import datetime as dt
 from dmi_parser import DMIParser
+import logging
+import argparse
 
-MAX_PENDING_BEFORE_RESTART = 10
 NOTIFICATION_EMAILS = ['howders@cedarville.edu','nbiggs112@cedarville.edu']
 
 
@@ -29,25 +30,27 @@ def main(filename: str, min_to_check, show_stats: bool):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        filepath = sys.argv[1]
-    else:
-        filepath = "dmi.log"
-    if len(sys.argv) > 2:
-        MAX_PENDING_BEFORE_RESTART = int(sys.argv[2])
-    if len(sys.argv) > 3:
-        minutes = int(sys.argv[3])
-    else:
-        minutes = None
-    if len(sys.argv) > 4:
-        stats = True
-    else:
-        stats = False
+    logging.basicConfig(level=logging.INFO)
+    log = logging.getLogger()
+    a = argparse.ArgumentParser()
+    a.add_argument('-d', '--debug', action='store_true', help="turn on debugging", default=False)
+    a.add_argument('-s', '--stats', action='store_true', help="turn on stats", default=False)
+    a.add_argument('-m', '--minutes', type=int, help="how many minutes of log to parse", default=5)
+    a.add_argument('-r', '--restart', type=int, help="how many errors will trigger a DMI restart", default=10)
+    a.add_argument('-f', '--file', type=str, help="logfile to parse", default='dmi.log')
+    args = a.parse_args()
+    filepath = args.file
+    pending_max = args.restart
+    minutes = args.minutes
+    stats = args.stats
+    if args.debug:
+        log.setLevel(logging.DEBUG)
+
     issues = main(filepath, minutes, stats)
     pending_issues = [x for x in issues if x.get_status_time() == "pending"]
     for i in issues:
         print(i)
-    if len(pending_issues) > MAX_PENDING_BEFORE_RESTART:
+    if len(pending_issues) > pending_max:
         result = os.system("/usr/local/bin/restart_listener.sh live_ui_test")
         for email in NOTIFICATION_EMAILS:
             os.system(f"echo 'Dmi-log-parser restarted the Live_UI listener at {dt.now()} with result: {result}'"
