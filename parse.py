@@ -67,9 +67,9 @@ if __name__ == "__main__":
         if args.email:
             if args.restart:
                 for email in args.email:
-                    os.system(f"echo 'Dmi-log-parser restarted the Live_UI listener at {dt.now()} with result: {result}'"
-                              f" | mail -s 'dmi-log-parser restarted live_ui listener' {email}")
+                    os.system(f"echo 'Dmi-log-parser restarted the UI listener at {dt.now()} with result: {result}'"
+                              f" | mail -s 'dmi-log-parser restarted UI listener' {email}")
             else:
                 for email in args.email:
-                    os.system(f"echo 'Dmi-log-parser would have restarted the Live_UI listener at {dt.now()}'"
-                              f" | mail -s 'dmi-log-parser restarted live_ui listener' {email}")
+                    os.system(f"echo 'Dmi-log-parser would have restarted the UI listener at {dt.now()}'"
+                              f" | mail -s 'dmi-log-parser would have restarted UI listener' {email}")
