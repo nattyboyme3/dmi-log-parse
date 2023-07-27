@@ -25,7 +25,7 @@ class DMITransaction:
         else:
             return False
 
-    def __repr__(self):
+    def get_status_time(self):
         et = self.elapsed_time
         if self.elapsed_time == -1:
             et = 'unknown'
@@ -33,6 +33,10 @@ class DMITransaction:
             et = 'timeout'
         if self.elapsed_time == -3:
             et = 'pending'
+        return et
+
+    def __repr__(self):
+        et = self.get_status_time()
         ic = self.incoming_length
         if self.incoming_length == -1:
             ic = 'unknown'
