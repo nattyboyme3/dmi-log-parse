@@ -12,6 +12,7 @@ NOTIFICATION_EMAILS = ['howders@cedarville.edu','nbiggs112@cedarville.edu']
 
 def main(filename: str, min_to_check, show_stats: bool):
     p = DMIParser()
+    log.debug(f"Reading file {filename}")
     with open(filename, 'r', errors='replace') as f:
         if min_to_check:
             start_date = dt.now() - datetime.timedelta(minutes=min_to_check)
@@ -19,13 +20,19 @@ def main(filename: str, min_to_check, show_stats: bool):
             start_date = None
         for line in f.readlines():
             p.parse_dmi_line(line, start_date)
+    log.debug(f"Parsed {p.total_transactions()} lines of logs")
     pending = p.finalize()
     if len(pending) >= 5:
+        log.debug(f"Found {len(pending)} pending transactions. Adding them to errors.")
         p.error_transactions.extend(pending)
+    else:
+        log.debug(f"Found only {len(pending)} pending transactions. Ignoring for now.")
     p.filter_errors()
+    log.debug(f"Still reporting {len(p.error_transactions)} after filtering")
     if show_stats:
         return p.stats()
     else:
+        log.debug(f"returning {len(p.error_transactions)} errors.")
         return p.errors()
 
 
@@ -50,7 +57,8 @@ if __name__ == "__main__":
     pending_issues = [x for x in issues if x.get_status_time() == "pending"]
     for i in issues:
         print(i)
-    if len(pending_issues) > pending_max:
+    if len(pending_issues) >= pending_max:
+        log.debug(f"found at least {pending_max} pending transactions. Sending emails and restarting live_ui listener")
         result = os.system("/usr/local/bin/restart_listener.sh live_ui_test")
         for email in NOTIFICATION_EMAILS:
             os.system(f"echo 'Dmi-log-parser restarted the Live_UI listener at {dt.now()} with result: {result}'"

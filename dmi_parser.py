@@ -13,6 +13,9 @@ class DMIParser:
         self.current_time: dt = dt.now()
         self.completed_transactions: list[DMITransaction] = []
 
+    def total_transactions(self):
+        return len(self.completed_transactions) + len(self.error_transactions) + len(self.current_transactions)
+
     def flush_perf_info_cache(self):
         # by this point our perf info should have, at a minimum, an extension.
         if 'extension' not in self.current_perf_info.keys() or not self.current_perf_info['extension']:
