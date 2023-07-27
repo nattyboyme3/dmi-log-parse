@@ -57,7 +57,7 @@ if __name__ == "__main__":
     pending_issues = [x for x in issues if x.get_status_time() == "pending"]
     for i in issues:
         print(i)
-    if not args.debug and len(pending_issues) >= pending_max:
+    if len(pending_issues) >= pending_max:
         if args.restart:
             log.info(f"found at least {pending_max} pending transactions. Sending emails and restarting listener")
             result = os.system("/usr/local/bin/restart_listener.sh live_ui_test")
