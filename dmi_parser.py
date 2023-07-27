@@ -1,10 +1,13 @@
+import logging
+
 from patterns import *
 from dmi_transaction import DMITransaction
 from datetime import datetime as dt
+import logging
 
 
 class DMIParser:
-    def __init__(self):
+    def __init__(self, debug):
         self.current_transactions: list[DMITransaction] = []
         self.current_perf_info: dict = {}
         self.current_perf_info_list: list[dict] = []
@@ -12,6 +15,9 @@ class DMIParser:
         self.error_transactions: list[DMITransaction] = []
         self.current_time: dt = dt.now()
         self.completed_transactions: list[DMITransaction] = []
+        self.log = logging.getLogger()
+        if debug:
+            self.log.setLevel(logging.DEBUG)
 
     def total_transactions(self):
         return len(self.completed_transactions) + len(self.error_transactions) + len(self.current_transactions)
@@ -87,6 +93,7 @@ class DMIParser:
         time_match = time_pattern.search(" ".join(split_line[:2]))
         if time_match:
             self.current_time = dt.strptime(" ".join(split_line[:2]), "%Y-%m-%d %H:%M:%S,%f")
+            self.log.debug(f'matched time with {self.current_time}')
             rest = " ".join(split_line[2:])
         else:
             rest = line
@@ -96,6 +103,7 @@ class DMIParser:
         if exec_match and self.current_time:
             self.current_state = 1  # this is nominal. We can do anything.
             new_transaction = DMITransaction(exec_match.group(1), self.current_time)
+            self.log.debug(f'matched execution with extension {new_transaction.extension}')
             self.current_transactions.append(new_transaction)
         perf_match = perf_pattern.search(rest)
         if perf_match:
@@ -104,6 +112,7 @@ class DMIParser:
             # only set timestamp and the values we found\
             gd = perf_match.groupdict()
             tmp_perf_info.update(gd)
+            self.log.debug(f'matched perf info info {tmp_perf_info}')
             # Convert integers
             for key in ['elapsed_time', 'session', 'transaction', 'client_port']:
                 if key in tmp_perf_info.keys() and tmp_perf_info[key]:
@@ -119,22 +128,28 @@ class DMIParser:
         incoming_match = incoming_pattern.search(rest)
         if incoming_match:
             self.current_perf_info['incoming_length'] = len(rest)
+            self.log.debug(f'matched incoming with info {rest}')
             inc_trans_match = incoming_transaction_pattern.search(rest)
             if inc_trans_match:
+                self.log.debug(f'matched incoming transaction with info {inc_trans_match.group("extension")}')
                 self.current_perf_info['extension'] = inc_trans_match.group('extension')
         outgoing_match = outgoing_pattern.search(rest)
         if outgoing_match and 'extension' in self.current_perf_info.keys():
+            self.log.debug(f'matched outgoing with info {rest}')
             self.current_perf_info['outgoing_length'] = len(rest)
             flush = True
         logon_match = logon_pattern.search(rest)
         if logon_match:
+            self.log.debug(f'matched outgoing with info {logon_match.group(1)}')
             self.current_perf_info['user'] = logon_match.group(1)
         error_match = error_pattern.search(rest)
         if error_match:
+            self.log.debug(f'matched outgoing with info {error_match.group(1)}')
             self.current_perf_info['error'] = error_match.group(1)
             flush = True
         if flush:
             # This is the end of any given transaction, so we need to store the perf info.
+            self.log.debug(f'flushing perf info cache')
             self.flush_perf_info_cache()
 
     def filter_errors(self):

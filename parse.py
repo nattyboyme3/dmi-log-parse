@@ -10,8 +10,8 @@ import argparse
 NOTIFICATION_EMAILS = ['howders@cedarville.edu','nbiggs112@cedarville.edu']
 
 
-def main(filename: str, min_to_check, show_stats: bool):
-    p = DMIParser()
+def main(filename: str, min_to_check, show_stats: bool, debug:  bool):
+    p = DMIParser(debug)
     log.debug(f"Reading file {filename}")
     with open(filename, 'r', errors='replace') as f:
         if min_to_check:
@@ -53,12 +53,12 @@ if __name__ == "__main__":
     if args.debug:
         log.setLevel(logging.DEBUG)
 
-    issues = main(filepath, minutes, stats)
+    issues = main(filepath, minutes, stats, args.debug)
     pending_issues = [x for x in issues if x.get_status_time() == "pending"]
     for i in issues:
         print(i)
-    if len(pending_issues) >= pending_max:
-        log.debug(f"found at least {pending_max} pending transactions. Sending emails and restarting live_ui listener")
+    if not args.debug and len(pending_issues) >= pending_max:
+        log.info(f"found at least {pending_max} pending transactions. Sending emails and restarting live_ui listener")
         result = os.system("/usr/local/bin/restart_listener.sh live_ui_test")
         for email in NOTIFICATION_EMAILS:
             os.system(f"echo 'Dmi-log-parser restarted the Live_UI listener at {dt.now()} with result: {result}'"
