@@ -41,7 +41,8 @@ if __name__ == "__main__":
     a.add_argument('-d', '--debug', action='store_true', help="turn on debugging", default=False)
     a.add_argument('-s', '--stats', action='store_true', help="turn on stats", default=False)
     a.add_argument('-m', '--minutes', type=int, help="how many minutes of log to parse", default=5)
-    a.add_argument('-r', '--restart', type=int, help="how many errors will trigger a DMI restart", default=10)
+    a.add_argument('-c', '--count', type=int, help="how many errors will trigger a DMI restart", default=10)
+    a.add_argument('-r', '--restart', action='store_true', help="actually restart listener at count", default=False)
     a.add_argument('-f', '--file', type=str, help="logfile to parse", default='dmi.log')
     a.add_argument('-e', '--email', type=str, action='append', help="people to email", default=None)
     args = a.parse_args()
@@ -57,9 +58,18 @@ if __name__ == "__main__":
     for i in issues:
         print(i)
     if not args.debug and len(pending_issues) >= pending_max:
-        log.info(f"found at least {pending_max} pending transactions. Sending emails and restarting live_ui listener")
-        result = os.system("/usr/local/bin/restart_listener.sh live_ui_test")
+        if args.restart:
+            log.info(f"found at least {pending_max} pending transactions. Sending emails and restarting listener")
+            result = os.system("/usr/local/bin/restart_listener.sh live_ui_test")
+        else:
+            log.info(f"found at least {pending_max} pending transactions. would have restarted listener")
+
         if args.email:
-            for email in args.email:
-                os.system(f"echo 'Dmi-log-parser restarted the Live_UI listener at {dt.now()} with result: {result}'"
-                          f" | mail -s 'dmi-log-parser restarted live_ui listener' {email}")
+            if args.restart:
+                for email in args.email:
+                    os.system(f"echo 'Dmi-log-parser restarted the Live_UI listener at {dt.now()} with result: {result}'"
+                              f" | mail -s 'dmi-log-parser restarted live_ui listener' {email}")
+            else:
+                for email in args.email:
+                    os.system(f"echo 'Dmi-log-parser would have restarted the Live_UI listener at {dt.now()}'"
+                              f" | mail -s 'dmi-log-parser restarted live_ui listener' {email}")
